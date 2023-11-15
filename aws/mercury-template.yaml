@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Send Carbon Accounting Data from your AWS account to Project Mercury Computing."
+Parameters:
+  mercuryComputingAccountName:
+    Type: String
+    Description: "Your mercurycomputing.io name of this account."
+    MinLength: 1
+  mercuryComputingCustomerOrg:
+    Type: String
+    Description: "Your mercurycomputing.io customer data storage organization."
+    MinLength: 1
+Resources:
+  mercuryComputingCostAndUsageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ['-', ['mercurycomputing', !Ref 'mercuryComputingAccountName']]
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoExpireRule
+            Status: Enabled
+            ExpirationInDays: 90
+  costAndUsageReportS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref mercuryComputingCostAndUsageBucket
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: Policy1335892530063
+        Statement:
+          - Sid: Stmt1335892150622
+            Effect: Allow
+            Principal:
+              Service: billingreports.amazonaws.com
+            Action:
+              - s3:GetBucketAcl
+              - s3:GetBucketPolicy
+            Resource: !GetAtt
+              - mercuryComputingCostAndUsageBucket
+              - Arn
+            Condition:
+              StringLike:
+                aws:SourceArn: !Join [ "", [ "arn:aws:cur:us-east-1:", !Ref AWS::AccountId, ":definition/*" ]]
+                aws:SourceAccount: !Ref AWS::AccountId
+          - Sid: Stmt1335892526596
+            Effect: Allow
+            Principal:
+              Service: billingreports.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Join [ "" , [ "arn:aws:s3:::" , !Ref mercuryComputingCostAndUsageBucket, "/*" ]]
+            Condition:
+              StringLike:
+                aws:SourceArn: !Join [ "", [ "arn:aws:cur:us-east-1:", !Ref AWS::AccountId, ":definition/*" ]]
+                aws:SourceAccount: !Ref AWS::AccountId
+          - Sid: MercuryListBucket
+            Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::681657822623:role/MercuryAccountAccessRole'
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketPolicy'
+            Resource: !GetAtt
+              - mercuryComputingCostAndUsageBucket
+              - Arn
+          - Sid: MercuryGetObject
+            Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::681657822623:role/MercuryAccountAccessRole'
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectAcl'
+            Resource: !Join
+              - ''
+              - - !GetAtt
+                  - mercuryComputingCostAndUsageBucket
+                  - Arn
+                - /*
+          - Sid: MercuryDevListBucket
+            Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::939513265105:role/MercuryAccountAccessRole'
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketPolicy'
+            Resource: !GetAtt
+              - mercuryComputingCostAndUsageBucket
+              - Arn
+          - Sid: MercuryDevGetObject
+            Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::939513265105:role/MercuryAccountAccessRole'
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectAcl'
+            Resource: !Join
+              - ''
+              - - !GetAtt
+                  - mercuryComputingCostAndUsageBucket
+                  - Arn
+                - /*
+  costAndUsageReports:
+    DependsOn: mercuryComputingCostAndUsageBucket
+    Type: 'AWS::CUR::ReportDefinition'
+    Properties:
+      Compression: 'Parquet'
+      Format: 'Parquet'
+      RefreshClosedReports: 'true'
+      ReportName: 'MercuryComputing'
+      ReportVersioning: 'OVERWRITE_REPORT'
+      S3Bucket: !Ref mercuryComputingCostAndUsageBucket
+      S3Prefix: 'mercurycomputing'
+      S3Region: us-east-1   # CUR bucket region must be us-east-1 in CF template
+      TimeUnit: 'HOURLY'
