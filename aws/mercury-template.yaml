@@ -98,7 +98,7 @@ Resources:
                   - Arn
                 - /*
   costAndUsageReports:
-    DependsOn: mercuryComputingCostAndUsageBucket
+    DependsOn: costAndUsageReportS3BucketPolicy
     Type: 'AWS::CUR::ReportDefinition'
     Properties:
       Compression: 'Parquet'
