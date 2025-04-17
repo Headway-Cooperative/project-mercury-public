@@ -16,6 +16,7 @@ ff.http('exportData', async (req: ff.Request, res: ff.Response) => {
     tagNames
   )
   console.info(`retrieved ${usage.length} usage rows`)
+  res.status(200).send()
 })
 
 /* Note about resource tags:
@@ -43,8 +44,7 @@ const getUsage = async (
   const [projectLabelPropertySelections, projectLabelPropertyJoins] = buildTagQuery('projectLabels', projectLabels)
 
   const query = `SELECT
-                    DATE_TRUNC(DATE(usage_start_time), HOUR
-    }) as timestamp,
+                    DATE(usage_start_time) as timestamp,
                     project.id as accountId,
                     project.name as accountName,
                     ifnull(location.region, location.location) as region,
@@ -84,6 +84,7 @@ const getUsage = async (
                     machineType`
 
   const bigQuery = new BigQuery({ projectId })
+  console.info(query)
   let job: Job
     ;[job] = await bigQuery.createQueryJob({ query })
   let rows: RowMetadata

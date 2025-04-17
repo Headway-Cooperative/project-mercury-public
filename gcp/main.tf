@@ -36,11 +36,16 @@ resource "google_storage_bucket" "bucket" {
 data "archive_file" "default" {
   type        = "zip"
   output_path = "/tmp/mercury-billing-export.zip"
-  source_dir  = "."
+  excludes = [
+    "*.tf",
+    ".terraform*",
+    "terraform*"
+  ]
+  source_dir = "."
 }
 
 resource "google_storage_bucket_object" "object" {
-  name   = "mercury-billing-export-${timestamp()}.zip"
+  name   = "mercury-billing-export-${data.archive_file.default.output_md5}.zip"
   bucket = google_storage_bucket.bucket.name
   source = data.archive_file.default.output_path
   depends_on = [
@@ -75,23 +80,29 @@ resource "google_cloudfunctions2_function" "function" {
   depends_on = [google_service_account.account]
 }
 
-resource "google_project_iam_custom_role" "default" {
-  role_id     = "mercury.billing.export"
-  title       = "Mercury Billing Export Role"
-  description = "Role used by MercuryBillingExport function"
-  permissions = [
-    "storage.objects.create",
-    "bigquery.jobs.create",
-    "bigquery.jobs.get",
-    "cloudfunctions.functions.invoke"
-  ]
+resource "google_project_iam_member" "bigquery_data_viewer" {
+  project = google_cloudfunctions2_function.function.project
+  role    = "roles/bigquery.dataViewer"
+  member  = google_service_account.account.member
+}
+
+resource "google_project_iam_member" "bigquery_job_user" {
+  project = google_cloudfunctions2_function.function.project
+  role    = "roles/bigquery.jobUser"
+  member  = google_service_account.account.member
+}
+
+resource "google_project_iam_member" "storage_object_creator" {
+  project = google_cloudfunctions2_function.function.project
+  role    = "roles/storage.objectCreator"
+  member  = google_service_account.account.member
 }
 
 resource "google_cloudfunctions2_function_iam_member" "invoker" {
   project        = google_cloudfunctions2_function.function.project
   location       = google_cloudfunctions2_function.function.location
   cloud_function = google_cloudfunctions2_function.function.name
-  role           = google_project_iam_custom_role.default.name
+  role           = "roles/cloudfunctions.invoker"
   member         = google_service_account.account.member
 }
 
