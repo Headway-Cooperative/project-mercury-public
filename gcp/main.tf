@@ -8,7 +8,10 @@ terraform {
 }
 
 provider "google" {
-  project = ""
+  project = var.projectId
+}
+
+variable "projectId" {
 }
 
 variable "datasetName" {
