@@ -31,7 +31,7 @@ resource "google_project_iam_member" "bigquery_data_viewer" {
   member  = "serviceAccount:mercury-accessor-sa@mercuryaccessor.iam.gserviceaccount.com"
   condition {
     title      = "only billing access"
-    expression = "resource.name == 'projects/${var.projectId}/datasets/${var.datasetName}'"
+    expression = "resource.name.startsWith('projects/${var.projectId}/datasets/${var.datasetName}')"
   }
 }
 
