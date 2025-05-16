@@ -11,14 +11,9 @@ provider "google" {
   project = var.projectId
 }
 
-variable "projectId" {
-  default = "crested-trainer-457019-h6"
-}
+variable "projectId" {}
 
-variable "datasetName" {
-  # default = "mercury_billing_data.gcp_billing_export_resource_v1_0185D8_D9CD43_0B6637"
-  default = "mercury_billing_data"
-}
+variable "datasetName" {}
 
 resource "google_service_account" "account" {
   account_id   = "mercury-sa"
