@@ -15,11 +15,6 @@ variable "projectId" {}
 
 variable "datasetName" {}
 
-resource "google_service_account" "account" {
-  account_id   = "mercury-sa"
-  display_name = "Mercury Service Account"
-}
-
 resource "google_project_iam_member" "bigquery_data_viewer" {
   project = var.projectId
   role    = "roles/bigquery.dataViewer"
